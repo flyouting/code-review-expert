@@ -1,21 +1,21 @@
 ---
 name: code-review-expert
-description: "Expert code review of current git changes with a senior engineer lens. Detects SOLID violations, security risks, and proposes actionable improvements."
+description: "Expert code review of current git changes with a senior engineer lens. Detects SOLID violations, security risks, platform-specific best practices (Android/iOS/Vue), and proposes actionable improvements."
 ---
 
 # Code Review Expert
 
 ## Overview
 
-Perform a structured review of the current git changes with focus on SOLID, architecture, removal candidates, and security risks. Default to review-only output unless the user asks to implement changes.
+Perform a structured review of the current git changes with focus on SOLID, architecture, removal candidates, security risks, and **platform-specific best practices**. Default to review-only output unless the user asks to implement changes.
 
 ## Severity Levels
 
 | Level | Name | Description | Action |
 |-------|------|-------------|--------|
-| **P0** | Critical | Security vulnerability, data loss risk, correctness bug | Must block merge |
-| **P1** | High | Logic error, significant SOLID violation, performance regression | Should fix before merge |
-| **P2** | Medium | Code smell, maintainability concern, minor SOLID violation | Fix in this PR or create follow-up |
+| **P0** | Critical | Security vulnerability, data loss risk, correctness bug, app crash risk | Must block merge |
+| **P1** | High | Logic error, memory leak, significant SOLID violation, performance regression | Should fix before merge |
+| **P2** | Medium | Code smell, maintainability concern, minor SOLID violation, platform anti-pattern | Fix in this PR or create follow-up |
 | **P3** | Low | Style, naming, minor suggestion | Optional improvement |
 
 ## Workflow
@@ -62,7 +62,21 @@ Perform a structured review of the current git changes with focus on SOLID, arch
   - **Race conditions**: concurrent access, check-then-act, TOCTOU, missing locks
 - Call out both **exploitability** and **impact**.
 
-### 5) Code quality scan
+### 5) Platform Specific Checks (NEW)
+**Dynamic Context Loading**:
+- **IF** reviewing **Android** files (`.kt`, `.java`, `.xml`):
+  - Load `references/android-checklist.md`.
+  - Check for: Context leaks, Lifecycle misuse, Main Thread blocking, Kotlin `!!` safety.
+- **IF** reviewing **iOS** files (`.swift`, `.m`, `.h`):
+  - Load `references/ios-checklist.md`.
+  - Check for: Retain cycles (`[weak self]`), Force unwrapping (`!`), Main Actor UI updates.
+- **IF** reviewing **Frontend/Vue** files (`.vue`, `.ts`, `.js`, `.tsx`):
+  - Load `references/fe-checklist.md`.
+  - Check for: Prop mutation, Reactivity loss, Key usage, Lifecycle cleanup.
+
+Apply these specific rules strictly. A violation here (e.g., Android Memory Leak) is often P0 or P1.
+
+### 6) Code quality scan
 
 - Load `references/code-quality-checklist.md` for coverage.
 - Check for:
@@ -71,14 +85,16 @@ Perform a structured review of the current git changes with focus on SOLID, arch
   - **Boundary conditions**: null/undefined handling, empty collections, numeric boundaries, off-by-one
 - Flag issues that may cause silent failures or production incidents.
 
-### 6) Output format
+### 7) Output format
 
 Structure your review as follows:
 
 ```markdown
 ## Code Review Summary
 
+## Code Review Summary
 **Files reviewed**: X files, Y lines changed
+**Context**: [Android / iOS / Frontend / Backend]
 **Overall assessment**: [APPROVE / REQUEST_CHANGES / COMMENT]
 
 ---
@@ -152,4 +168,7 @@ Please choose an option or provide specific instructions.
 | `solid-checklist.md` | SOLID smell prompts and refactor heuristics |
 | `security-checklist.md` | Web/app security and runtime risk checklist |
 | `code-quality-checklist.md` | Error handling, performance, boundary conditions |
+| `android-checklist.md` | Android (Kotlin/Java): memory/lifecycle, ANR, Kotlin practices |
+| `ios-checklist.md` | iOS (Swift): ARC, main-thread safety, Swift idioms |
+| `fe-checklist.md` | Frontend (Vue/TS): reactivity, component lifecycle, render performance |
 | `removal-plan.md` | Template for deletion candidates and follow-up plan |
